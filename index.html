@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Data Record Pro - ArqCapp</title>
+  
+  <!-- Configuración PWA / iOS -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e293b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Data Record Pro">
+  <link rel="apple-touch-icon" href="https://drive.google.com/thumbnail?id=1Oh-14tW-yUtpfmSPNPTxShQwwPCBKuic&sz=w512">
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --success: #22c55e;
+      --danger: #ef4444;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding-bottom: 70px; }
+
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    header img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
+    header h1 { font-size: 1.15rem; font-weight: 700; }
+    header p { font-size: 0.75rem; color: var(--text-muted); }
+
+    .container { max-width: 600px; margin: 0 auto; padding: 1rem; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--text-muted); }
+    input, select, textarea {
+      width: 100%;
+      background: #0b1120;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 10px;
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+
+    .btn {
+      width: 100%;
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    .btn:active { background: var(--accent-hover); }
+    .btn-secondary { background: #334155; color: var(--text); margin-top: 8px; }
+
+    /* Canvas de Firma */
+    #signature-pad {
+      background: #fff;
+      border-radius: 8px;
+      width: 100%;
+      height: 150px;
+      touch-action: none;
+    }
+
+    /* Vista previa de foto */
+    #photo-preview {
+      width: 100%;
+      max-height: 200px;
+      object-fit: cover;
+      border-radius: 8px;
+      display: none;
+      margin-bottom: 1rem;
+    }
+
+    /* Lista de Registros */
+    .record-item {
+      background: #0b1120;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: bold;
+      background: var(--accent);
+      color: #0f172a;
+    }
+
+    .install-banner {
+      background: #1e3a8a;
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      display: none;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Banner para instalar PWA -->
+  <div id="install-banner" class="container" style="display:none;">
+    <div class="install-banner" id="install-btn-container">
+      📲 <b>Instalar Data Record Pro</b> en este dispositivo
+      <button class="btn btn-secondary" id="btn-install" style="margin-top:5px; padding:6px;">Instalar App</button>
+    </div>
+  </div>
+
+  <header>
+    <img src="https://drive.google.com/thumbnail?id=1Oh-14tW-yUtpfmSPNPTxShQwwPCBKuic&sz=w100" alt="Logo">
+    <div>
+      <h1>Data Record Pro</h1>
+      <p>Sistema de Data Record en Terreno | ArqCapp Juan Carlos Alvarez</p>
+    </div>
+  </header>
+
+  <div class="container">
+    <form id="recordForm" class="card">
+      <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">📝 Nuevo Registro de Terreno</h2>
+
+      <label>PROYECTO / FRENTE</label>
+      <input type="text" id="proyecto" placeholder="Ej: Obra Torre Central - Sector A" required>
+
+      <label>INSPECTOR</label>
+      <input type="text" id="inspector" placeholder="Nombre del inspector" value="ArqCapp Juan Carlos Alvarez Silva" required>
+
+      <label>CATEGORÍA</label>
+      <select id="categoria">
+        <option>Inspección de Avance</option>
+        <option>Control de Calidad</option>
+        <option>Seguridad y Salud (HSE)</option>
+        <option>Hallazgo / Incidencia</option>
+      </select>
+
+      <label>GEOLOCALIZACIÓN GPS</label>
+      <div style="display: flex; gap: 8px; margin-bottom: 1rem;">
+        <input type="text" id="gps" placeholder="Lat, Long" readonly style="margin-bottom:0;">
+        <button type="button" class="btn" style="width: auto;" onclick="obtenerGPS()">📍 Capturar</button>
+      </div>
+
+      <label>EVIDENCIA FOTOGRÁFICA</label>
+      <input type="file" id="foto" accept="image/*" capture="environment" onchange="previewImage(event)">
+      <img id="photo-preview" alt="Vista previa">
+
+      <label>DESCRIPCIÓN TÉCNICA DEL HALLAZGO</label>
+      <textarea id="descripcion" rows="3" placeholder="Detalle lo observado en campo..." required></textarea>
+
+      <label>FIRMA DEL RESPONSABLE</label>
+      <canvas id="signature-pad"></canvas>
+      <button type="button" class="btn btn-secondary" onclick="clearSignature()" style="margin-bottom: 1rem;">Limpiar Firma</button>
+
+      <button type="submit" class="btn">💾 Guardar Registro en Terreno</button>
+    </form>
+
+    <!-- Registros Guardados Offline -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h2 style="font-size: 1.1rem;">📂 Registros Locales (<span id="record-count">0</span>)</h2>
+        <button class="btn" style="width: auto; padding: 6px 12px; font-size: 0.8rem;" onclick="exportarCSV()">📥 Descargar CSV</button>
+      </div>
+      <div id="records-list"></div>
+    </div>
+  </div>
+
+  <script>
+    // --- 1. Service Worker & PWA Installation ---
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('install-banner').style.display = 'block';
+    });
+
+    document.getElementById('btn-install')?.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        if (outcome === 'accepted') document.getElementById('install-banner').style.display = 'none';
+      }
+    });
+
+    // --- 2. Base de Datos IndexedDB (Offline Storage) ---
+    let db;
+    const request = indexedDB.open("DataRecordProDB", 1);
+    request.onupgradeneeded = (e) => {
+      db = e.target.result;
+      db.createObjectStore("records", { keyPath: "id", autoIncrement: true });
+    };
+    request.onsuccess = (e) => {
+      db = e.target.result;
+      loadRecords();
+    };
+
+    // --- 3. Geolocalización GPS ---
+    function obtenerGPS() {
+      const gpsInput = document.getElementById('gps');
+      gpsInput.value = "Obteniendo satélites...";
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          gpsInput.value = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+        },
+        (err) => {
+          alert("Error de GPS: Asegúrese de encender la ubicación.");
+          gpsInput.value = "";
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    // --- 4. Vista Previa y Compresión de Imagen ---
+    let base64Photo = "";
+    function previewImage(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          base64Photo = e.target.result;
+          const img = document.getElementById('photo-preview');
+          img.src = base64Photo;
+          img.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    // --- 5. Pad de Firma Digital (Canvas) ---
+    const canvas = document.getElementById('signature-pad');
+    const ctx = canvas.getContext('2d');
+    let writing = false;
+
+    function resizeCanvas() {
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      canvas.width = canvas.offsetWidth * ratio;
+      canvas.height = canvas.offsetHeight * ratio;
+      ctx.scale(ratio, ratio);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#000';
+    }
+    window.addEventListener('resize', resizeCanvas);
+    setTimeout(resizeCanvas, 300);
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    ['mousedown', 'touchstart'].forEach(ev => canvas.addEventListener(ev, (e) => {
+      writing = true;
+      const { x, y } = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      e.preventDefault();
+    }));
+
+    ['mousemove', 'touchmove'].forEach(ev => canvas.addEventListener(ev, (e) => {
+      if (!writing) return;
+      const { x, y } = getPos(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      e.preventDefault();
+    }));
+
+    ['mouseup', 'touchend'].forEach(ev => canvas.addEventListener(ev, () => writing = false));
+
+    function clearSignature() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // --- 6. Guardar Registro en IndexedDB ---
+    document.getElementById('recordForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const signatureData = canvas.toDataURL();
+      const record = {
+        fecha: new Date().toLocaleString(),
+        proyecto: document.getElementById('proyecto').value,
+        inspector: document.getElementById('inspector').value,
+        categoria: document.getElementById('categoria').value,
+        gps: document.getElementById('gps').value || "No capturado",
+        descripcion: document.getElementById('descripcion').value,
+        foto: base64Photo,
+        firma: signatureData
+      };
+
+      const tx = db.transaction(["records"], "readwrite");
+      tx.objectStore("records").add(record);
+      tx.oncomplete = () => {
+        alert("✅ Registro guardado localmente en terreno.");
+        document.getElementById('recordForm').reset();
+        document.getElementById('photo-preview').style.display = 'none';
+        clearSignature();
+        base64Photo = "";
+        loadRecords();
+      };
+    });
+
+    // --- 7. Cargar y Mostrar Registros ---
+    function loadRecords() {
+      const tx = db.transaction(["records"], "readonly");
+      const store = tx.objectStore("records");
+      const list = document.getElementById('records-list');
+      const count = document.getElementById('record-count');
+      list.innerHTML = "";
+
+      store.getAll().onsuccess = (e) => {
+        const records = e.target.result;
+        count.innerText = records.length;
+        records.reverse().forEach(r => {
+          list.innerHTML += `
+            <div class="record-item">
+              <span class="badge">${r.categoria}</span>
+              <p><b>${r.proyecto}</b> - <small>${r.fecha}</small></p>
+              <p style="color:var(--text-muted);">${r.descripcion}</p>
+              <p style="font-size:0.75rem; color:var(--accent);">📍 GPS: ${r.gps}</p>
+            </div>
+          `;
+        });
+      };
+    }
+
+    // --- 8. Exportar a CSV ---
+    function exportarCSV() {
+      const tx = db.transaction(["records"], "readonly");
+      tx.objectStore("records").getAll().onsuccess = (e) => {
+        const records = e.target.result;
+        if (!records.length) return alert("No hay registros para exportar.");
+
+        let csv = "ID,Fecha,Proyecto,Inspector,Categoria,GPS,Descripcion\n";
+        records.forEach(r => {
+          csv += `"${r.id}","${r.fecha}","${r.proyecto}","${r.inspector}","${r.categoria}","${r.gps}","${r.descripcion.replace(/"/g, '""')}"\n`;
+        });
+
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `Data_Record_Pro_${Date.now()}.csv`;
+        link.click();
+      };
+    }
+  </script>
+</body>
+</html>
